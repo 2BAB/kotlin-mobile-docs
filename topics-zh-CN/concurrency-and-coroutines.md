@@ -1,62 +1,56 @@
 [//]: # (title: Concurrency and coroutines)
 [//]: # (auxiliary-id: Concurrency_and_Coroutines)
 
-When working with mobile platforms, you may need to write multithreaded code that runs in parallel. For this, 
-you can use the [standard](#coroutines) `kotlinx.coroutines` library or its [multithreaded version](#multithreaded-coroutines) 
-and [alternative solutions](#alternatives-to-kotlinx-coroutines).
+开发移动平台应用时，可能需要编写多线程代码并行执行。你可以使用[标准库](#coroutines) 提供的 `kotlinx.coroutines` 库，或者这个库的[多线程版本](#multithreaded-coroutines)，再或者使用[其他方案](#alternatives-to-kotlinx-coroutines)。
 
-Review the pros and cons of each solution and choose the one that works best for your situation.
+权衡每个方案的利弊，选择一个最适合你场景的。
 
-Learn more about [concurrency, the current approach, and future improvements](concurrency-overview.md).
+了解更多关于 [KMM 并发的现状，和将要进行的改进](concurrency-overview.md)。
 
-## Coroutines
+<a id="coroutines"></a>
+## 协程
 
-Coroutines are light-weight threads that allow you to write asynchronous non-blocking code. Kotlin provides the 
-[`kotlinx.coroutines`](https://github.com/Kotlin/kotlinx.coroutines) library with a number of high-level coroutine-enabled primitives.
+协程是轻量化的线程，你可以使用它编写异步的非阻塞代码。Kotlin 提供的 [`kotlinx.coroutines`](https://github.com/Kotlin/kotlinx.coroutines) 
+库有许多支持协程的高级原语。
 
-The current version of `kotlinx.coroutines`, which can be used for iOS, supports usage only in a single thread. 
-You cannot send work to other threads by changing a [dispatcher](#dispatcher-for-changing-threads).
+当前可以用于 iOS 版本的 `kotlinx.coroutines` 仅支持在单线程内的操作。你不能通过改变 [dispatcher](#dispatcher-for-changing-threads) 把任务调度到其他线程。 
 
-For Kotlin %kotlinVersion%, the recommended coroutines version is `%coroutinesVersion%`.
+Kotlin %kotlinVersion%， 推荐使用协程版本 `%coroutinesVersion%`。
 
-You can suspend execution and do work on other threads while using a different mechanism for scheduling 
-and managing that work. However, this version of `kotlinx.coroutines` cannot change threads on its own.
+这个版本的 `kotlinx.coroutines` 还不能自己切换线程。你可以挂起正在执行的任务，使用另外的机制，在其他线程上调度并管理任务。
 
-There is also [another version of `kotlinx.coroutines`](#multithreaded-coroutines) that provides support for multiple threads.
+其实还有[一个支持多线程版本](#多线程版本协程)的 `kotlinx.coroutines`。
 
-Get acquainted with the main concepts for using coroutines:
+了解一下使用协程相关的几个主要概念：
 
-* [Asynchronous vs. parallel processing](#asynchronous-vs-parallel-processing)
-* [Dispatcher for changing threads](#dispatcher-for-changing-threads)
-* [Frozen captured data](#frozen-captured-data)
-* [Frozen returned data](#frozen-returned-data)
+* [异步 vs. 并行处理](#asynchronous-vs-parallel-processing)
+* [使用 Dispatcher 切换线程](#dispatcher-for-changing-threads)
+* [冻结捕获的数据](#frozen-captured-data)
+* [冻结返回的数据](#frozen-returned-data)
 
-### Asynchronous vs. parallel processing
+<a id="asynchronous-vs-parallel-processing"></a>
+### 异步 vs 并行处理
 
-Asynchronous and parallel processing are different. 
+异步和并行处理不同。
 
-Within a coroutine, the processing sequence may be suspended and resumed later. This allows for asynchronous, 
-non-blocking code, without using callbacks or promises. That is asynchronous processing, but everything related to that 
-coroutine can happen in a single thread. 
+在协程中，任务序列可能会被挂起，稍后恢复执行。利用这点，我们不需要 callback 或者 promise 就可以编写异步，非阻塞代码。这就是异步处理，所有与这个协程相关联的可以发生在同一个线程上。
 
-The following code makes a network call using [Ktor](https://ktor.io/). In the main thread, the call is initiated 
-and suspended, while another underlying process performs the actual networking. When completed, the code resumes 
-in the main thread.
+下面这个例子使用 [Ktor](https://ktor.io/) 执行了一个网络请求。在主线程，请求被初始化并挂起，再由另一个底层程序执行实际网络请求。请求完成后，主线程代码恢复执行。
 
 ```kotlin
 val client = HttpClient()
-//Running in the main thread, start a `get` call
+// 运行在主线程，开始一个 `get` 调用
 client.get<String>("https://example.com/some/rest/call")
-//The get call will suspend and let other work happen in the main thread, and resume when the get call completes
+// get 调用会被挂起，让其他任务在主线程执行，等到 get 调用完成后，再恢复执行
 ```
 
-That is different from parallel code that needs to be run in another thread. Depending on your purpose 
-and the libraries you use, you may never need to use multiple threads.
+并行代码和这个不一样，它需要在其他线程上执行。取决于你的目的和使用的库，你可能永远都不需要多线程。
 
-### Dispatcher for changing threads
+<a id="dispatcher-for-changing-threads"></a>
+### 使用 Dispatcher 切换线程
 
-Coroutines are executed by a dispatcher that defines which thread the coroutine will be executed on. 
-There are a number of ways in which you can specify the dispatcher, or change the one for the coroutine. For example: 
+协程由 dispatcher 执行，dispatcher 可以控制协程运行在哪个线程上。
+有许多方法指定或者改变协程的 dispatcher。比如：
 
 ```kotlin
 suspend fun differentThread() = withContext(Dispatchers.Default){
@@ -64,37 +58,32 @@ suspend fun differentThread() = withContext(Dispatchers.Default){
 }
 ```
 
-`withContext` takes both a dispatcher as an argument and a code block that will be executed by the thread defined by 
-the dispatcher. Learn more about [coroutine context and dispatchers](https://kotlinlang.org/docs/reference/coroutines/coroutine-context-and-dispatchers.html).
+`withContext` 接收两个参数，dispatcher 和一个代码块，代码块的内容会由 dispatcher 指定的线程执行。了解更多关于[协程的上下文和 dispatcher](https://kotlinlang.org/docs/reference/coroutines/coroutine-context-and-dispatchers.html)。
 
-To perform work on a different thread, specify a different dispatcher and a code block to execute. In general, 
-switching dispatchers and threads works similar to the JVM, but there are differences related to freezing
-captured and returned data.
+要在不同的线程上执行任务，需要指定不同的 dispatcher 和代码块来执行。一般来说，切换 dispatcher 和线程的工作方式与 JVM 类似，但在处理冻结捕获和返回的数据时有所不同。
 
-### Frozen captured data
+<a id="frozen-captured-data"></a>
+### 冻结捕获的数据
 
-To run code on a different thread, you pass a `functionBlock`, which gets frozen and then runs in another thread. 
+我们传递一个 `functionBlock` 参数，希望在其他线程上执行这段代码，这个 block 先会被冻结，之后才能在其他线程上执行。
 
 ```kotlin
 fun <R> runOnDifferentThread(functionBlock: () -> R)
 ```
 
-You will call that function as follows:
+需要像下面这样调用：
 
 ```kotlin
 runOnDifferentThread {
-    //Code run in another thread
+    // 代码运行在其他线程之上
 }
 ```
 
-As described in the [concurrency overview](concurrency-overview.md), a state shared between threads in 
-Kotlin/Native must be frozen. A function argument is a state itself, which will be frozen along with anything it captures.
+[Concurrency 概览](concurrency-overview.md)中提到过，在 Kotlin/Native 中，线程间共享的状态一定会被冻结。一个函数参数本身就是一个状态，会被冻结，并且任何被它捕获的状态也会被冻结。
 
-Coroutine functions that cross threads use the same pattern. To allow function blocks to be executed on another thread, 
-they are frozen.
+跨线程的协程函数遵循同样的模式。函数块会被冻结，以便在其他线程上执行。
 
-In the following example, the data class instance `dc` will be captured by the function block and will be frozen when crossing 
-threads. The `println` statement will print `true`.
+下面的示例中，数据类实例 `dc` 会被函数块捕获，并在跨线程时冻结。`println` 语句会输出 `true`。
 
 ```kotlin
 val dc = DataClass("Hello")
@@ -103,8 +92,8 @@ withContext(Dispatchers.Default) {
 }
 ```
 
-When running parallel code, be careful with the captured state. 
-Sometimes it's obvious when the state will be captured, but not always. For example:
+当执行并行代码，需要小心对待被捕获的状态。
+有时可以很轻易的看出状态被捕获，但并不总是如此。比如：
 
 ```kotlin
 class SomeModel(val id:IdRec){
@@ -114,13 +103,12 @@ class SomeModel(val id:IdRec){
 }
 ```
 
-The code inside `saveData` runs on another thread. That will freeze `id`, but because `id` is a property of the parent class, 
-it will also freeze the parent class.
+`saveData` 内的代码运行在其他线程之上。 `id` 会被冻结，同时由于 `id` 是其父类的一个属性，所以它的父类也会被冻结。
 
-### Frozen returned data
+<a id="frozen-returned-data"></a>
+### 冻结返回的数据
 
-Data returned from a different thread is also frozen. Even though it's recommended that you return immutable data, you can 
-return a mutable state in a way that doesn't allow a returned value to be changed.
+从不同线程返回的数据也是被冻结的。虽然我们推荐返回不可变数据，但是你仍然可以选择返回可变状态，只不过这个返回值就不允许修改了。
 
 ```kotlin
 val dc = withContext(Dispatchers.Default) {
@@ -130,22 +118,21 @@ val dc = withContext(Dispatchers.Default) {
 println("${dc.isFrozen}")
 ```
 
-It may be a problem if a mutable state is isolated in a single thread and coroutine threading operations are used for 
-communication. If you attempt to return data that retains a reference to the mutable state, it will also freeze the data by 
-association.
+假设一个可变状态独立存在于某个线程之中，并且使用了协程的线程操作进行通信。如果你返回的数据持有了这个可变状态的引用，这个可变状态也会因为被关联而被冻结，这会是一个问题。
 
-Learn more about the [thread-isolated state](concurrent-mutability.md#thread-isolated-state).
+了解更多关于[线程隔离的状态](concurrent-mutability.md#thread-isolated-state)。
 
-## Multithreaded coroutines
 
-A [special branch](https://github.com/Kotlin/kotlinx.coroutines/tree/native-mt) of the `kotlinx.coroutines` library 
-provides support for using multiple threads. It is a separate branch for the reasons listed in the [future concurrency model blog post](https://blog.jetbrains.com/kotlin/2020/07/kotlin-native-memory-management-roadmap/). 
+<a id="multithreaded-coroutines"></a>
+## 多线程版本协程
 
-However, you can still use the multithreaded version of `kotlinx.coroutines` in production, taking its specifics into account.
+`kotlinx.coroutines` 有一个[特殊分支](https://github.com/Kotlin/kotlinx.coroutines/tree/native-mt)，提供了对多线程的支持。[这篇文章](https://blog.jetbrains.com/kotlin/2020/07/kotlin-native-memory-management-roadmap/)介绍了它被单独放到一个分支里的原因。
 
-The current version for Kotlin %kotlinVersion% is `%coroutinesVersion%-native-mt`. 
+不过你仍然可以在生产环境中使用支持多线程的 `kotlinx.coroutines`，考虑到它的具体情况。
 
-To use the multithreaded version, add a dependency for the `commonMain` source set in `build.gradle.kts`:
+适配 Kotlin %kotlinVersion% 的版本号是 `%coroutinesVersion%-native-mt`
+
+使用多线程版本需要在 `commonMain` 目录下的 `build.gradle.kts` 文件里声明依赖：
 
 ```kotlin
 commonMain {
@@ -155,8 +142,7 @@ commonMain {
 }
 ```
 
-When using other libraries that also depend on `kotlinx.coroutines`, such as Ktor, make sure to specify the multithreaded version
-of `kotlinx-coroutines`. You can do this with `strictly`:
+如果你使用了其他依赖了 `kotlinx.coroutines` 的三方库，比如 Ktor，请确保指定了多线程版本 `kotlinx-coroutines`。你可以使用 `strictly` 进行限制：
 
 ```kotlin
 implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:%coroutinesVersion%-native-mt"){
@@ -166,54 +152,51 @@ implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:%coroutinesVersio
 }
 ```
 
-Because the main version of `kotlinx.coroutines` is a single-threaded one, libraries will almost certainly rely on this version. 
-If you see `InvalidMutabilityException` related to a coroutine operation, it's very likely that you are using the wrong version.
+因为单线程的 `kotlinx.coroutines` 是主版本，大部分三方库都会依赖这个版本。如果你在进行协程相关操作时，遇到了 `InvalidMutabilityException` 异常，很可能是因为你使用了版本不匹配的协程库。
 
-> Using multithreaded coroutines may result in _memory leaks_. This can be a problem for complex coroutine scenarios under load.
-> We are working on a solution for this.
+> 使用多线程的协程可能会导致 _内存泄漏_ 。这在一定负载下的复杂协程场景可能是个问题。
+> 我们正在解决这个问题。
 >
 {type="note"}
 
-See a [complete example of using multithreaded coroutines in a KMM application](https://github.com/touchlab/KaMPKit).
+查看[在 KMM 应用中使用多线程版本协程的完整示例](https://github.com/touchlab/KaMPKit)。
 
-## Alternatives to `kotlinx-coroutines`
+<a id="alternatives-to-kotlinx-coroutines"></a>
+## `kotlinx-coroutines` 之外的备选方案
 
-There are a few alternative ways to run parallel code.
+除了协程，还有几种备选方案可以并行执行代码。
 
 ### CoroutineWorker
 
-[`CoroutinesWorker`](https://github.com/Autodesk/coroutineworker) is a library published by AutoDesk that implements some 
-features of coroutines across threads using the single-threaded version of `kotlinx.coroutines`. 
+[`CoroutinesWorker`](https://github.com/Autodesk/coroutineworker) 是 AutoDesk 发布的一个库，它使用单线程版本的 `kotlinx.coroutines` 实现了一些协程跨线程的特性。
 
-For simple suspend functions this is a pretty good option, but it does not support Flow and other structures.
+对于简单的 suspend 函数，这是一个很好的选择，但它不支持 Flow 和其他结构。
 
 ### Reaktive
 
-[Reaktive](https://github.com/badoo/Reaktive) is an Rx-like library that implements Reactive extensions for Kotlin Multiplatform. 
-It has some coroutine extensions but is primarily designed around RX and threads.
+[Reaktive](https://github.com/badoo/Reaktive) 是一个类似 Rx 的库，为 Kotlin Multiplatform 实现了 Reactive 扩展。 
+它提供一些协程扩展，但主要还是围绕 RX 和线程进行设计的。
 
-### Custom processor
+### 自定义 processor
 
-For simpler background tasks, you can create your own processor with wrappers around platform specifics. 
-See a [simple example](https://github.com/touchlab/KMMWorker).
+对于简单的后台任务，你可以基于具体平台 API 进行一层封装，创建自己的 processor。
+[一个简单的示例](https://github.com/touchlab/KMMWorker)。
 
 ### Platform concurrency
 
-In production, you can also rely on the platform to handle concurrency. 
-This could be helpful if the shared Kotlin code will be used for business logic or data operations rather 
-than architecture. 
+在生产中，你也可以依靠平台来处理并发性。
+如果共享的 Kotlin 代码将被用于业务逻辑或数据操作，而不是用于架构，这可能会有帮助。
 
-To share a state in iOS across threads, that state needs to be [frozen](concurrency-overview.md#immutable-and-frozen-state). The concurrency libraries mentioned here 
-will freeze your data automatically. You will rarely need to do so explicitly, if ever.
+要在 iOS 中跨线程共享一个状态，该状态需要被[冻结](concurrency-overview.md#immutable-and-frozen-state)。这里提到的并发库 
+会自动冻结你的数据。你很少需要明确地这样做。
 
-If you return data to the iOS platform that should be shared across threads, ensure 
-that data is frozen before leaving the iOS boundary.
+如果你返回给 iOS 平台的数据会在线程间共享，要确保在离开 iOS 边界前，数据是被冻结的。
 
-Kotlin has the concept of frozen only for Kotlin/Native platforms including iOS. To make `freeze` available in common code, 
-you can create expect and actual implementations for `freeze`, or use [`stately-common`](https://github.com/touchlab/Stately#stately-common), which provides this functionality. 
-In Kotlin/Native, `freeze` will freeze your state, while on the JVM it'll do nothing.
+Kotlin 只在 Kotlin/Native 相关的平台上（比如 iOS）有冻结这个概念。为了能在 common 代码中使用 `freeze`，可以使用 expect 和 actual 实现 `freeze`，
+或者使用 [`stately-common`](https://github.com/touchlab/Stately#stately-common)，它提供了这个功能。
+在 Kotlin/Native 中，`freeze` 会冻结你的状态，在 JVM 上什么都不做。
 
-To use `stately-common`, add a dependency for the `commonMain` source set in `build.gradle.kts`:
+使用 `stately-common` 需要在 `commonMain` 目录下的 `build.gradle.kts` 文件里声明依赖：
 
 ```kotlin
 commonMain {
@@ -224,4 +207,3 @@ commonMain {
 ```
 
 _This material was prepared by [Touchlab](https://touchlab.co/) for publication by JetBrains._
-
