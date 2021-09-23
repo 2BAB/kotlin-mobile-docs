@@ -1,5 +1,7 @@
 # Kotlin Multiplatform Mobile 中文文档
 
+**很可惜最后没有完成整个项目，大家都没有充足的时间继续，KMM 不够稳定，也没有吸引到足够的中文社区关注，加上在 1.4.32 还没做完的情况下 1.5.30 都已经发布了，所以我决定关闭该项目。不过，重点的内容、吸引译者们的内容，都想办法做了，有兴趣的朋友可以 Fork 该项目继续。非常感谢所有为项目付出过的同学。**
+
 该目录参照[英文原站](https://kotlinlang.org/docs/mobile/home.html)的顺序列出。
 
 - [x] [KMM 文档](./topics-zh-CN/home.md)
@@ -9,7 +11,7 @@
     - [教程：创建第一个多平台应用](./topics-zh-CN/create-first-app.md)
     - [教程：让你的 Android 应用运行在 iOS 上](./topics-zh-CN/integrate-in-existing-app.md)
     - [理解 KMM 的项目结构](./topics-zh-CN/discover-kmm-project.md)
-    - [将 KMM 介绍给你的团队](./topics-zh-CN/introduce-your-team-to-kmm.md)
+    - [x] [将 KMM 介绍给你的团队](./topics-zh-CN/introduce-your-team-to-kmm.md)
 - 开发
     - [围绕 KMM 组织工作流](./topics-zh-CN/organize-process-around-kmm.md)
     - [x] [设计 KMM 应用程序](./topics-zh-CN/architect-kmm-app.md)
@@ -21,8 +23,8 @@
     - [发布 KMM 应用](./topics-zh-CN/publish-kmm-apps.md)
     - 处理并发
         - [x] [并发概览](./topics-zh-CN/concurrency-overview.md)
-        - [并发中的可变性](./topics-zh-CN/concurrent-mutability.md)
-        - [并发与协程](./topics-zh-CN/concurrency-and-coroutines.md)
+        - [x] [并发中的可变性](./topics-zh-CN/concurrent-mutability.md)
+        - [x] [并发与协程](./topics-zh-CN/concurrency-and-coroutines.md)
 
 - [示例](./topics-zh-CN/samples.md)
 - [x] [所支持的平台](./topics-zh-CN/supported-platforms.md)
@@ -41,3 +43,4 @@
 - [lindroid](https://github.com/linroid)
 - [messi-wpy](https://github.com/messi-wpy)
 - [tiiime](https://github.com/tiiime)
+- lilin.darling
